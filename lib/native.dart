@@ -37,12 +37,16 @@ class Native {
 
   static Future<bool> isDefaultLauncher() => _call('isDefaultLauncher');
 
+  /// Asks Android to make this the home app. True if it now is.
+  static Future<bool> requestDefaultLauncher() =>
+      _call('requestDefaultLauncher');
+
   /// One of: ok, needs_permission, unsupported, failed.
   static Future<String> lockScreen() async =>
       await _channel.invokeMethod<String>('lockScreen') ?? 'failed';
 
   /// [target] is one of: dialer, camera, alarms, calendar, webSearch,
-  /// accessibility, homeSettings.
+  /// accessibility.
   static Future<bool> open(String target, {String? query}) =>
       _call('open', {'target': target, 'query': query});
 

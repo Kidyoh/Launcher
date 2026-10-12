@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../native.dart';
 import '../scope.dart';
 import '../settings.dart';
 import 'app_actions.dart';
@@ -21,6 +22,26 @@ class _HomeScreenState extends State<HomeScreen> {
   static const _minVelocity = 600.0;
 
   double _dx = 0, _dy = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _askToBeDefault());
+  }
+
+  /// On first run, offers to become the home app. Until it is, the home
+  /// button goes back to the old launcher.
+  Future<void> _askToBeDefault() async {
+    final settings = Launcher.of(context).settings;
+    if (settings.askedDefault || await Native.isDefaultLauncher()) return;
+    if (!mounted) return;
+    settings.askedDefault = true;
+    final yes = await showModalBottomSheet<bool>(
+      context: context,
+      builder: (sheet) => const _DefaultPrompt(),
+    );
+    if (yes == true) await Native.requestDefaultLauncher();
+  }
 
   bool _isSwipe(double distance, double velocity, {required bool forward}) =>
       forward
@@ -155,6 +176,56 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+class _DefaultPrompt extends StatelessWidget {
+  const _DefaultPrompt();
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.onSurface;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(32, 32, 32, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Make this your home screen',
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w200),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Then the home button always brings you back here '
+              'instead of your old launcher.',
+              style: TextStyle(
+                fontSize: 16,
+                height: 1.5,
+                color: color.withValues(alpha: 0.6),
+              ),
+            ),
+            const SizedBox(height: 24),
+            OverflowBar(
+              alignment: MainAxisAlignment.end,
+              overflowAlignment: OverflowBarAlignment.end,
+              spacing: 8,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Not now'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Set as default'),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

@@ -57,8 +57,11 @@ flutter build apk --release --split-per-abi
 adb install build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
 ```
 
-Then press the home button and choose **Launcher**, or open Settings → Apps →
-Default apps → Home app. Install a release build: debug builds are much
+The first time you open it, Launcher offers to become your home screen. Tap
+**Set as default** and confirm in Android's dialog. Until you do, the home
+button keeps going back to your old launcher. You can do this later from
+Launcher's settings, or from Android's Settings → Apps → Default apps → Home
+app. Install a release build: debug builds are much
 slower and use more battery.
 
 The release build is signed with the debug key. Add your own signing config

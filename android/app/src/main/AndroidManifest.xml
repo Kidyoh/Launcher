@@ -15,7 +15,6 @@
             android:launchMode="singleTask"
             android:clearTaskOnLaunch="true"
             android:stateNotNeeded="true"
-            android:excludeFromRecents="true"
             android:resumeWhilePausing="true"
             android:screenOrientation="portrait"
             android:taskAffinity=""

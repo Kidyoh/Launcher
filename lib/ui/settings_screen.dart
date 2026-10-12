@@ -103,7 +103,10 @@ class _SettingsScreenState extends State<SettingsScreen>
                 title: const Text('Make this your home screen'),
                 subtitle: const Text('Choose Launcher as the default home app'),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => Native.open('homeSettings'),
+                onTap: () async {
+                  await Native.requestDefaultLauncher();
+                  await _checkDefault();
+                },
               ),
             const _Header('Home'),
             ListTile(

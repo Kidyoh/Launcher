@@ -44,9 +44,11 @@ const _apps = [
 
 void main() {
   late List<MethodCall> calls;
+  late bool isDefault;
 
   setUp(() {
     calls = [];
+    isDefault = true;
     SharedPreferencesAsyncPlatform.instance =
         InMemorySharedPreferencesAsync.empty();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -57,7 +59,7 @@ void main() {
           return switch (call.method) {
             'getApps' => _apps,
             'lockScreen' => 'needs_permission',
-            'isDefaultLauncher' => false,
+            'isDefaultLauncher' => isDefault,
             _ => true,
           };
         });
@@ -176,12 +178,34 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('settings change the look', (tester) async {
+  testWidgets('first open offers to become the home app, once', (tester) async {
+    isDefault = false;
     await pumpLauncher(tester);
+    expect(find.text('Make this your home screen'), findsOneWidget);
+    await tester.tap(find.text('Set as default'));
+    await tester.pumpAndSettle();
+    expect(called('requestDefaultLauncher'), hasLength(1));
+    expect(find.text('Make this your home screen'), findsNothing);
+
+    // Not asked again on the next start, even if the user declined.
+    await unmount(tester);
+    await pumpLauncher(tester);
+    expect(find.text('Make this your home screen'), findsNothing);
+    await unmount(tester);
+  });
+
+  testWidgets('settings change the look', (tester) async {
+    isDefault = false;
+    await pumpLauncher(tester);
+    await tester.tap(find.text('Not now'));
+    await tester.pumpAndSettle();
     await tester.longPressAt(emptySpot);
     await tester.pumpAndSettle();
     expect(find.byType(SettingsScreen), findsOneWidget);
     expect(find.text('Make this your home screen'), findsOneWidget);
+    await tester.tap(find.text('Make this your home screen'));
+    await tester.pumpAndSettle();
+    expect(called('requestDefaultLauncher'), hasLength(1));
 
     await tester.tap(find.text('Light'));
     await tester.pumpAndSettle();

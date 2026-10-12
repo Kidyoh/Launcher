@@ -2,7 +2,9 @@ package com.kidyoh.launcher
 
 import android.accessibilityservice.AccessibilityService
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.SearchManager
+import android.app.role.RoleManager
 import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.LauncherApps
@@ -25,6 +27,7 @@ import java.util.concurrent.Executors
 
 class MainActivity : FlutterActivity() {
     private var channel: MethodChannel? = null
+    private var pendingDefaultRequest: MethodChannel.Result? = null
     private val mainHandler = Handler(Looper.getMainLooper())
     private val worker = Executors.newSingleThreadExecutor()
     private val launcherApps by lazy { getSystemService(LauncherApps::class.java) }
@@ -106,6 +109,7 @@ class MainActivity : FlutterActivity() {
             "lockScreen" -> result.success(lockScreen())
             "open" -> result.success(open(call.argument<String>("target")!!, call.argument<String>("query")))
             "isDefaultLauncher" -> result.success(isDefaultLauncher())
+            "requestDefaultLauncher" -> requestDefaultLauncher(result)
             else -> result.notImplemented()
         }
     }
@@ -171,13 +175,55 @@ class MainActivity : FlutterActivity() {
             "calendar" -> Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_CALENDAR)
             "webSearch" -> Intent(Intent.ACTION_WEB_SEARCH).putExtra(SearchManager.QUERY, query ?: "")
             "accessibility" -> Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-            "homeSettings" -> Intent(Settings.ACTION_HOME_SETTINGS)
             else -> return false
         }
         return attempt { startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
     }
 
+    /**
+     * Shows Android's "Set as default home app?" dialog (Android 10+), or the
+     * home app picker in system settings on older versions or if the dialog
+     * is blocked because the user declined it before. Replies with whether
+     * Launcher is now the default.
+     */
+    private fun requestDefaultLauncher(result: MethodChannel.Result) {
+        if (isDefaultLauncher()) return result.success(true)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val roles = getSystemService(RoleManager::class.java)
+            if (roles.isRoleAvailable(RoleManager.ROLE_HOME)) {
+                pendingDefaultRequest?.success(false)
+                pendingDefaultRequest = result
+                startActivityForResult(roles.createRequestRoleIntent(RoleManager.ROLE_HOME), REQUEST_DEFAULT)
+                return
+            }
+        }
+        openHomeSettings()
+        result.success(false)
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQUEST_DEFAULT) return
+        val result = pendingDefaultRequest ?: return
+        pendingDefaultRequest = null
+        if (resultCode != Activity.RESULT_OK && !isDefaultLauncher()) {
+            // Android stops showing the dialog after it's been declined, so
+            // fall back to the settings screen where the choice is always offered.
+            openHomeSettings()
+        }
+        result.success(isDefaultLauncher())
+    }
+
+    private fun openHomeSettings() {
+        attempt { startActivity(Intent(Settings.ACTION_HOME_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+    }
+
     private fun isDefaultLauncher(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val roles = getSystemService(RoleManager::class.java)
+            if (roles.isRoleAvailable(RoleManager.ROLE_HOME)) return roles.isRoleHeld(RoleManager.ROLE_HOME)
+        }
         val home = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
         val resolved = packageManager.resolveActivity(home, PackageManager.MATCH_DEFAULT_ONLY)
         return resolved?.activityInfo?.packageName == packageName
@@ -185,5 +231,6 @@ class MainActivity : FlutterActivity() {
 
     companion object {
         private const val CHANNEL = "launcher/native"
+        private const val REQUEST_DEFAULT = 1
     }
 }

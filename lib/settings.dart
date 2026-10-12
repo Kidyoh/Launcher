@@ -129,6 +129,10 @@ class Settings extends ChangeNotifier {
   bool get autoLaunch => _prefs.getBool('autoLaunch') ?? true;
   set autoLaunch(bool v) => _set('autoLaunch', v);
 
+  /// Whether the "make this your home screen" prompt has been shown.
+  bool get askedDefault => _prefs.getBool('askedDefault') ?? false;
+  set askedDefault(bool v) => _set('askedDefault', v);
+
   bool get drawerKeyboard => _prefs.getBool('drawerKeyboard') ?? true;
   set drawerKeyboard(bool v) => _set('drawerKeyboard', v);
 
