@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Three left-aligned lines of decreasing length: a text-only home screen. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:strokeColor="#FFEDEDED"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:pathData="M38,44 L70,44 M38,54 L62,54 M38,64 L54,64" />
+</vector>
